@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WordPress Site Checker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+    <h1 class="text-2xl font-bold mb-4 text-center">WordPress Site Checker</h1>
+    <form id="urlForm" class="mb-4">
+      <input type="url" id="urlInput" placeholder="Enter WordPress site URL" required
+        class="w-full px-3 py-2 border rounded-md mb-2">
+      <button type="submit"
+        class="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition duration-300">
+        Check Site
+      </button>
+    </form>
+    <div id="loading" class="hidden text-center">
+      <p>Analyzing site... This may take a few moments.</p>
+    </div>
+    <div id="results" class="hidden">
+      <h2 class="text-xl font-semibold mb-2">Analysis Results:</h2>
+      <ul id="resultsList" class="list-disc pl-5 mb-4"></ul>
+    </div>
+  </div>
+
+  <script src="wordpress-checker.js"></script>
+  <script>
+    // Inline script to check if the external JS file loaded correctly
+    window.addEventListener('load', function () {
+      if (typeof checkWordPressSite === 'undefined') {
+        console.error('wordpress-checker.js did not load correctly');
+        alert('There was an error loading the script. Please check the console for more information.');
+      }
+    });
+  </script>
+</body>
+
+</html>
