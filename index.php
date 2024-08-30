@@ -4,6 +4,25 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+// Set the content type to JSON
+header('Content-Type: application/json');
+
+// Custom error handler
+function jsonErrorHandler($errno, $errstr, $errfile, $errline)
+{
+  $error = [
+    'error' => 'PHP Error',
+    'message' => $errstr,
+    'file' => $errfile,
+    'line' => $errline
+  ];
+  echo json_encode($error);
+  exit;
+}
+
+// Set the custom error handler
+set_error_handler('jsonErrorHandler');
+
 require_once 'WordPressChecker.php';
 
 // Handle the incoming request
@@ -14,8 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Basic URL validation
     if (filter_var($url, FILTER_VALIDATE_URL)) {
-      $checker = new WordPressChecker($url);
-      $checker->checkSite();
+      try {
+        $checker = new WordPressChecker($url);
+        $checker->checkSite();
+      } catch (Exception $e) {
+        echo json_encode(['error' => 'Checker Error', 'message' => $e->getMessage()]);
+      }
     } else {
       echo json_encode(['error' => 'Invalid URL provided']);
     }
@@ -24,6 +47,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
   exit; // End execution after handling POST request
 }
+
+// If it's not a POST request, return an error
+echo json_encode(['error' => 'Invalid request method. Use POST to check a site.']);
+exit;
+
+// The following code will not be reached in an AJAX context, but we'll keep it for completeness
 
 // Define an array of checks
 $checks = [

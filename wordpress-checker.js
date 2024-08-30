@@ -1,12 +1,10 @@
 console.log("wordpress-checker.js loaded");
 
 document.addEventListener("DOMContentLoaded", function () {
-  console.log("DOM fully loaded and parsed");
   const form = document.getElementById("urlForm");
   if (form) {
     form.addEventListener("submit", function (e) {
       e.preventDefault();
-      console.log("Form submitted");
       const url = document.getElementById("urlInput").value;
       checkWordPressSite(url);
     });
@@ -29,7 +27,7 @@ async function checkWordPressSite(url) {
   setTableToLoading();
 
   try {
-    const response = await fetch("wp_checker.php", {
+    const response = await fetch("index.php", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -37,23 +35,24 @@ async function checkWordPressSite(url) {
       body: `url=${encodeURIComponent(url)}`,
     });
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      throw new Error("Oops! Received non-JSON response from server");
+    }
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    const responseText = await response.text();
+    const lines = responseText.split("\n").filter((line) => line.trim() !== "");
 
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n").filter((line) => line.trim() !== "");
-
-      for (const line of lines) {
-        try {
-          const data = JSON.parse(line);
-          updateTableContent(data);
-        } catch (error) {
-          console.error("Error parsing JSON:", error);
+    for (const line of lines) {
+      try {
+        const data = JSON.parse(line);
+        if (data.error) {
+          throw new Error(data.error);
         }
+        updateTableContent(data);
+      } catch (error) {
+        console.error("Error parsing JSON:", error);
+        updateField("wpIssues", `Error: ${error.message}`, "text-red-500");
       }
     }
   } catch (error) {
@@ -77,6 +76,7 @@ function setTableToLoading() {
     "userEnumeration",
     "xmlRpcEnabled",
     "hostingProvider",
+    "robotsTxt",
   ];
   fields.forEach((field) => {
     updateField(field, "Checking...", "text-yellow-500");
@@ -147,6 +147,13 @@ function updateTableContent(data) {
         break;
       case "hosting_provider":
         updateHostingProvider(value);
+        break;
+      case "robots_txt":
+        updateField(
+          "robotsTxt",
+          value,
+          value === "Found" ? "text-green-500" : "text-yellow-500"
+        );
         break;
       case "issues":
         updateIssues(value);

@@ -26,10 +26,14 @@ class WordPressChecker
 
     public function checkSite()
     {
-        $this->checkSSL();
-        $this->getHostingProvider();
-        $this->checkRobotsTxt();
-        $this->checkWordPressContent();
+        try {
+            $this->checkSSL();
+            $this->getHostingProvider();
+            $this->checkRobotsTxt();
+            $this->checkWordPressContent();
+        } catch (Exception $e) {
+            $this->sendUpdate(['error' => $e->getMessage()]);
+        }
         return $this->results;
     }
 

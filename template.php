@@ -15,8 +15,7 @@
       <h1 class="text-2xl font-bold mb-4 text-center">WordPress Site Checker</h1>
 
       <form id="urlForm" class="mb-4">
-        <input type="url" id="urlInput" placeholder="Enter website URL" required
-          class="w-full p-2 border rounded mb-2">
+        <input type="url" id="urlInput" placeholder="Enter website URL" required class="w-full p-2 border rounded mb-2">
         <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
           Check Site
         </button>
