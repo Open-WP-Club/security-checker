@@ -26,7 +26,7 @@ async function checkWordPressSite(url) {
   }
 
   loadingDiv.classList.remove("hidden");
-  resultsTable.classList.add("hidden");
+  setTableToLoading();
 
   try {
     console.log("Sending request to wp_checker.php");
@@ -49,8 +49,22 @@ async function checkWordPressSite(url) {
     document.getElementById("wpIssues").classList.add("text-red-500");
   } finally {
     loadingDiv.classList.add("hidden");
-    resultsTable.classList.remove("hidden");
   }
+}
+
+function setTableToLoading() {
+  const fields = [
+    "isWordPress",
+    "wpVersion",
+    "wpTheme",
+    "wpPlugins",
+    "wpIssues",
+  ];
+  fields.forEach((field) => {
+    const element = document.getElementById(field);
+    element.textContent = "Checking...";
+    element.className = "border border-gray-300 p-2 text-yellow-500";
+  });
 }
 
 function updateTableContent(data) {
@@ -61,15 +75,19 @@ function updateTableContent(data) {
   const wpIssues = document.getElementById("wpIssues");
 
   isWordPress.textContent = data.is_wordpress ? "Yes" : "No";
-  isWordPress.classList.add(
-    data.is_wordpress ? "text-green-500" : "text-red-500"
-  );
+  isWordPress.className =
+    "border border-gray-300 p-2 " +
+    (data.is_wordpress ? "text-green-500" : "text-red-500");
 
   wpVersion.textContent = data.version || "Unknown (hidden)";
-  wpVersion.classList.add(data.version ? "text-green-500" : "text-yellow-500");
+  wpVersion.className =
+    "border border-gray-300 p-2 " +
+    (data.version ? "text-green-500" : "text-yellow-500");
 
   wpTheme.textContent = data.theme || "Unknown";
-  wpTheme.classList.add(data.theme ? "text-green-500" : "text-yellow-500");
+  wpTheme.className =
+    "border border-gray-300 p-2 " +
+    (data.theme ? "text-green-500" : "text-yellow-500");
 
   if (Array.isArray(data.plugins) && data.plugins.length > 0) {
     wpPlugins.innerHTML = data.plugins
@@ -80,17 +98,19 @@ function updateTableContent(data) {
         }</span></div>`;
       })
       .join("");
-    wpPlugins.classList.add("text-green-500");
+    wpPlugins.className = "border border-gray-300 p-2 text-green-500";
   } else {
     wpPlugins.textContent = "None detected";
-    wpPlugins.classList.add("text-yellow-500");
+    wpPlugins.className = "border border-gray-300 p-2 text-yellow-500";
   }
 
   if (data.issues && data.issues.length > 0) {
     wpIssues.innerHTML = data.issues
       .map((issue) => `<div class="text-red-500">${issue}</div>`)
       .join("");
+    wpIssues.className = "border border-gray-300 p-2";
   } else {
     wpIssues.innerHTML = '<div class="text-green-500">No issues detected</div>';
+    wpIssues.className = "border border-gray-300 p-2";
   }
 }
