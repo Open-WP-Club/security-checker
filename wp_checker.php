@@ -70,10 +70,22 @@ function checkWordPressSite($url)
             $results['issues'][] = "Unable to detect WordPress theme";
         }
 
-        // Try to detect plugins
+        // Try to detect plugins with versions
         preg_match_all('/wp-content\/plugins\/([^\/]+)/', $html, $plugin_matches);
         if (!empty($plugin_matches[1])) {
-            $results['plugins'] = array_values(array_unique($plugin_matches[1]));
+            $plugins = array_values(array_unique($plugin_matches[1]));
+            $results['plugins'] = [];
+            foreach ($plugins as $plugin) {
+                $plugin_file = "$url/wp-content/plugins/$plugin/$plugin.php";
+                $plugin_data = @file_get_contents($plugin_file);
+                if ($plugin_data !== false) {
+                    preg_match('/Version:\s*(.+)$/m', $plugin_data, $version_match);
+                    $version = !empty($version_match[1]) ? trim($version_match[1]) : 'Unknown';
+                    $results['plugins'][] = "$plugin|$version";
+                } else {
+                    $results['plugins'][] = "$plugin|Unknown";
+                }
+            }
         }
 
         // Check for potential security issues
