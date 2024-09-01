@@ -198,9 +198,10 @@ function updatePlugins(plugins) {
         ) {
           versionClass = "text-yellow-500";
         }
-        return `<div>${name}: <span class="font-semibold ${versionClass}">${version}</span></div>`;
+        return `<li>${name}: <span class="font-semibold ${versionClass}">${version}</span></li>`;
       })
       .join("");
+    wpPlugins.innerHTML = `<ul class="list-disc pl-5">${wpPlugins.innerHTML}</ul>`;
     wpPlugins.className = "border border-gray-300 p-2 text-green-500";
     wpPluginsInfo.textContent = `${plugins.length} plugin(s) detected. Keep these updated to maintain security.`;
   } else {
@@ -235,9 +236,11 @@ function updateIssues(issues) {
   const wpIssues = document.getElementById("wpIssues");
   const wpIssuesInfo = document.getElementById("wpIssuesInfo");
   if (issues && issues.length > 0) {
-    wpIssues.innerHTML = issues
-      .map((issue) => `<div class="text-red-500">${issue}</div>`)
-      .join("");
+    wpIssues.innerHTML = `<ul class="list-disc pl-5">
+      ${issues
+        .map((issue) => `<li class="text-red-500">${issue}</li>`)
+        .join("")}
+    </ul>`;
     wpIssuesInfo.textContent = `${issues.length} potential security issue(s) found. Address these to improve your site's security.`;
   } else {
     wpIssues.innerHTML = '<div class="text-green-500">No issues detected</div>';

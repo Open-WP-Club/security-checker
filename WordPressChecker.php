@@ -259,10 +259,6 @@ class WordPressChecker
             }
         }
 
-        if (!$this->results['directory_indexing']) {
-            $this->results['issues'][] = "Directory indexing appears to be disabled (good security practice)";
-        }
-
         $this->sendUpdate(['directory_indexing' => $this->results['directory_indexing']]);
     }
 
@@ -295,9 +291,7 @@ class WordPressChecker
                 $this->results['issues'][] = "User enumeration is possible";
             } else {
                 $this->results['user_enumeration'] = false;
-                if ($status == '404') {
-                    $this->results['issues'][] = "User enumeration appears to be disabled (good security practice)";
-                } else {
+                if ($status != '404') {
                     $this->results['issues'][] = "User enumeration check returned unexpected status: $status";
                 }
             }
@@ -325,9 +319,7 @@ class WordPressChecker
                 $this->results['issues'][] = "XML-RPC is enabled and accessible";
             } else {
                 $this->results['xml_rpc_enabled'] = false;
-                if ($status == '405' || $status == '403') {
-                    $this->results['issues'][] = "XML-RPC access is restricted (good security practice)";
-                } else {
+                if ($status != '405' && $status != '403') {
                     $this->results['issues'][] = "XML-RPC check returned unexpected status: $status";
                 }
             }
