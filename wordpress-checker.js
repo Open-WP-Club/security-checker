@@ -37,22 +37,32 @@ async function checkWordPressSite(url) {
 
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
-      throw new Error("Oops! Received non-JSON response from server");
+      throw new Error(
+        `Oops! Received non-JSON response from server: ${await response.text()}`
+      );
     }
 
     const responseText = await response.text();
+    console.log("Raw response:", responseText); // Log the raw response for debugging
+
     const lines = responseText.split("\n").filter((line) => line.trim() !== "");
 
     for (const line of lines) {
       try {
         const data = JSON.parse(line);
         if (data.error) {
-          throw new Error(data.error);
+          throw new Error(
+            `Server error: ${data.message}\nTrace: ${
+              data.trace || "No trace available"
+            }`
+          );
         }
         updateTableContent(data);
-      } catch (error) {
-        console.error("Error parsing JSON:", error);
-        updateField("wpIssues", `Error: ${error.message}`, "text-red-500");
+      } catch (jsonError) {
+        console.error("Error parsing JSON:", jsonError);
+        throw new Error(
+          `Failed to parse server response: ${jsonError.message}\nRaw response: ${line}`
+        );
       }
     }
   } catch (error) {

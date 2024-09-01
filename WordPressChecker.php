@@ -26,15 +26,22 @@ class WordPressChecker
 
     public function checkSite()
     {
+        $this->runTest('checkSSL');
+        $this->runTest('getHostingProvider');
+        $this->runTest('checkRobotsTxt');
+        $this->runTest('checkWordPressContent');
+
+        $this->sendUpdate(['final_results' => $this->results]);
+    }
+
+    private function runTest($testMethod)
+    {
         try {
-            $this->checkSSL();
-            $this->getHostingProvider();
-            $this->checkRobotsTxt();
-            $this->checkWordPressContent();
+            $this->$testMethod();
         } catch (Exception $e) {
-            $this->sendUpdate(['error' => $e->getMessage()]);
+            $this->results['issues'][] = "Error in {$testMethod}: " . $e->getMessage();
+            $this->sendUpdate(['error' => "Error in {$testMethod}", 'message' => $e->getMessage()]);
         }
-        return $this->results;
     }
 
     private function sendUpdate($data)
@@ -129,10 +136,7 @@ class WordPressChecker
         $html = curl_exec($ch);
 
         if (curl_errno($ch)) {
-            $this->results['issues'][] = "Error accessing the site: " . curl_error($ch);
-            $this->sendUpdate(['issues' => $this->results['issues']]);
-            curl_close($ch);
-            return;
+            throw new Exception("Error accessing the site: " . curl_error($ch));
         }
 
         $status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -147,13 +151,13 @@ class WordPressChecker
             $this->results['is_wordpress'] = true;
             $this->sendUpdate(['is_wordpress' => true]);
 
-            $this->checkWordPressVersion($html);
-            $this->checkTheme($html);
-            $this->checkPlugins($html);
-            $this->checkDirectoryIndexing();
-            $this->checkWpCron();
-            $this->checkUserEnumeration();
-            $this->checkXmlRpc();
+            $this->runTest('checkWordPressVersion');
+            $this->runTest('checkTheme');
+            $this->runTest('checkPlugins');
+            $this->runTest('checkDirectoryIndexing');
+            $this->runTest('checkWpCron');
+            $this->runTest('checkUserEnumeration');
+            $this->runTest('checkXmlRpc');
         } else {
             $this->results['issues'][] = "This does not appear to be a WordPress site.";
             $this->sendUpdate(['is_wordpress' => false]);
