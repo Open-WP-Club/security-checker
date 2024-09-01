@@ -38,6 +38,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       // Basic URL validation
       if (filter_var($url, FILTER_VALIDATE_URL)) {
+        // Check if the URL has been recently checked
+        $cooldown_period = 300; // 5 minutes in seconds
+        $csv_file = 'checked_urls.csv';
+        $current_time = time();
+
+        if (file_exists($csv_file)) {
+          $handle = fopen($csv_file, 'r');
+          while (($data = fgetcsv($handle)) !== FALSE) {
+            if ($data[0] === $url && ($current_time - $data[1]) < $cooldown_period) {
+              fclose($handle);
+              echo json_encode(['error' => 'Cooldown', 'message' => 'Please wait a few minutes before checking this URL again.']);
+              exit;
+            }
+          }
+          fclose($handle);
+        }
+
+        // If we're here, the URL hasn't been checked recently or is new
+        // Append the URL and current timestamp to the CSV file
+        $handle = fopen($csv_file, 'a');
+        fputcsv($handle, [$url, $current_time]);
+        fclose($handle);
+
         $checker = new WordPressChecker($url);
         $checker->checkSite();
       } else {

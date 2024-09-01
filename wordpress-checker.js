@@ -17,11 +17,16 @@ async function checkWordPressSite(url) {
   console.log("Checking WordPress site:", url);
   const loadingDiv = document.getElementById("loading");
   const resultsTable = document.getElementById("resultsTable");
+  const errorDiv = document.getElementById("errorMessage");
 
-  if (!loadingDiv || !resultsTable) {
+  if (!loadingDiv || !resultsTable || !errorDiv) {
     console.error("One or more required elements not found");
     return;
   }
+
+  // Clear any previous error messages
+  errorDiv.textContent = "";
+  errorDiv.classList.add("hidden");
 
   loadingDiv.classList.remove("hidden");
   setTableToLoading();
@@ -51,12 +56,12 @@ async function checkWordPressSite(url) {
       try {
         const data = JSON.parse(line);
         if (data.error) {
-          console.error(`Error in ${data.error}: ${data.message}`);
-          updateField(
-            "wpIssues",
-            `Error in ${data.error}: ${data.message}`,
-            "text-red-500"
-          );
+          console.error(`Error: ${data.error}: ${data.message}`);
+          if (data.error === "Cooldown") {
+            displayError(data.message);
+            return;
+          }
+          displayError(`Error: ${data.error}: ${data.message}`);
         } else if (data.final_results) {
           updateTableContent(data.final_results);
         } else {
@@ -64,14 +69,45 @@ async function checkWordPressSite(url) {
         }
       } catch (jsonError) {
         console.error("Error parsing JSON:", jsonError, "Raw data:", line);
+        displayError("Error parsing server response");
       }
     }
   } catch (error) {
     console.error("Error:", error);
-    updateField("wpIssues", `Error: ${error.message}`, "text-red-500");
+    displayError(`Error: ${error.message}`);
   } finally {
     loadingDiv.classList.add("hidden");
   }
+}
+
+function displayError(message) {
+  const errorDiv = document.getElementById("errorMessage");
+  if (errorDiv) {
+    errorDiv.textContent = message;
+    errorDiv.classList.remove("hidden");
+  }
+  // Reset the table to its initial state
+  resetTable();
+}
+
+function resetTable() {
+  const fields = [
+    "isWordPress",
+    "wpVersion",
+    "wpTheme",
+    "wpPlugins",
+    "wpIssues",
+    "sslEnabled",
+    "directoryIndexing",
+    "wpCronFound",
+    "userEnumeration",
+    "xmlRpcEnabled",
+    "hostingProvider",
+    "robotsTxt",
+  ];
+  fields.forEach((field) => {
+    updateField(field, "Not checked", "text-gray-500");
+  });
 }
 
 function setTableToLoading() {
