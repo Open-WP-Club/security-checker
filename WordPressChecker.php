@@ -308,11 +308,31 @@ class WordPressChecker
 
     private function checkXmlRpc()
     {
-        $xmlrpc = @file_get_contents($this->url . "/xmlrpc.php");
-        if ($xmlrpc !== false && strpos($xmlrpc, 'XML-RPC server accepts POST requests only.') !== false) {
-            $this->results['xml_rpc_enabled'] = true;
-            $this->results['issues'][] = "XML-RPC is enabled";
+        $context = stream_context_create(['http' => ['ignore_errors' => true]]);
+        $xmlrpc = @file_get_contents($this->url . "/xmlrpc.php", false, $context);
+
+        if ($xmlrpc === false) {
+            $this->results['xml_rpc_enabled'] = false;
+            $this->results['issues'][] = "XML-RPC check failed due to network error";
+        } else {
+            $http_response_header = $http_response_header ?? [];
+            $status_line = $http_response_header[0] ?? '';
+            preg_match('{HTTP\/\S*\s(\d{3})}', $status_line, $match);
+            $status = $match[1] ?? '';
+
+            if ($status == '200' && strpos($xmlrpc, 'XML-RPC server accepts POST requests only.') !== false) {
+                $this->results['xml_rpc_enabled'] = true;
+                $this->results['issues'][] = "XML-RPC is enabled and accessible";
+            } else {
+                $this->results['xml_rpc_enabled'] = false;
+                if ($status == '405' || $status == '403') {
+                    $this->results['issues'][] = "XML-RPC access is restricted (good security practice)";
+                } else {
+                    $this->results['issues'][] = "XML-RPC check returned unexpected status: $status";
+                }
+            }
         }
+
         $this->sendUpdate(['xml_rpc_enabled' => $this->results['xml_rpc_enabled']]);
     }
 }

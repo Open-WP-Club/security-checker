@@ -152,8 +152,10 @@ function updateTableContent(data) {
       case "xml_rpc_enabled":
         updateField(
           "xmlRpcEnabled",
-          value ? "Enabled" : "Disabled",
-          value ? "text-yellow-500" : "text-green-500"
+          value
+            ? "Enabled (Potential security risk)"
+            : "Disabled or restricted (Secure)",
+          value ? "text-red-500" : "text-green-500"
         );
         break;
       case "hosting_provider":
