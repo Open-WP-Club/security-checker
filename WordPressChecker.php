@@ -120,8 +120,24 @@ class WordPressChecker
 
     private function checkRobotsTxt()
     {
-        $robots_txt = @file_get_contents($this->url . "/robots.txt");
-        $this->results['robots_txt'] = ($robots_txt !== false) ? "Found" : "Not found";
+        $robots_txt_url = $this->url . "/robots.txt";
+        $context = stream_context_create(['http' => ['ignore_errors' => true]]);
+        $robots_txt = @file_get_contents($robots_txt_url, false, $context);
+
+        if ($robots_txt === false) {
+            $this->results['robots_txt'] = "Not found or inaccessible";
+            $this->results['issues'][] = "robots.txt is not found or inaccessible";
+        } else {
+            $http_response_header = $http_response_header ?? [];
+            $status_line = $http_response_header[0] ?? '';
+            if (strpos($status_line, '200') !== false) {
+                $this->results['robots_txt'] = "Found";
+            } else {
+                $this->results['robots_txt'] = "Not found (Status: " . substr($status_line, 9) . ")";
+                $this->results['issues'][] = "robots.txt returned an unexpected status: " . substr($status_line, 9);
+            }
+        }
+
         $this->sendUpdate(['robots_txt' => $this->results['robots_txt']]);
     }
 
@@ -151,13 +167,13 @@ class WordPressChecker
             $this->results['is_wordpress'] = true;
             $this->sendUpdate(['is_wordpress' => true]);
 
-            $this->runTest('checkWordPressVersion');
-            $this->runTest('checkTheme');
-            $this->runTest('checkPlugins');
-            $this->runTest('checkDirectoryIndexing');
-            $this->runTest('checkWpCron');
-            $this->runTest('checkUserEnumeration');
-            $this->runTest('checkXmlRpc');
+            $this->checkWordPressVersion($html);
+            $this->checkTheme($html);
+            $this->checkPlugins($html);
+            $this->checkDirectoryIndexing();
+            $this->checkWpCron();
+            $this->checkUserEnumeration();
+            $this->checkXmlRpc();
         } else {
             $this->results['issues'][] = "This does not appear to be a WordPress site.";
             $this->sendUpdate(['is_wordpress' => false]);
@@ -207,12 +223,33 @@ class WordPressChecker
 
     private function checkDirectoryIndexing()
     {
-        $upload_dir = @file_get_contents($this->url . "/wp-content/uploads/");
-        $plugin_dir = @file_get_contents($this->url . "/wp-content/plugins/");
-        if (strpos($upload_dir, 'Index of') !== false || strpos($plugin_dir, 'Index of') !== false) {
-            $this->results['directory_indexing'] = true;
-            $this->results['issues'][] = "Directory indexing is enabled";
+        $this->results['directory_indexing'] = false;
+        $dirs_to_check = [
+            $this->url . "/wp-content/uploads/",
+            $this->url . "/wp-content/plugins/"
+        ];
+
+        foreach ($dirs_to_check as $dir) {
+            $context = stream_context_create(['http' => ['ignore_errors' => true]]);
+            $response = @file_get_contents($dir, false, $context);
+
+            if ($response !== false) {
+                $status_line = $http_response_header[0];
+                preg_match('{HTTP\/\S*\s(\d{3})}', $status_line, $match);
+                $status = $match[1];
+
+                if ($status == '200' && strpos($response, 'Index of') !== false) {
+                    $this->results['directory_indexing'] = true;
+                    $this->results['issues'][] = "Directory indexing is enabled for $dir";
+                    break;
+                }
+            }
         }
+
+        if (!$this->results['directory_indexing']) {
+            $this->results['issues'][] = "Directory indexing appears to be disabled (good security practice)";
+        }
+
         $this->sendUpdate(['directory_indexing' => $this->results['directory_indexing']]);
     }
 

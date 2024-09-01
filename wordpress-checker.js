@@ -43,7 +43,7 @@ async function checkWordPressSite(url) {
     }
 
     const responseText = await response.text();
-    console.log("Raw response:", responseText); // Log the raw response for debugging
+    console.log("Raw response:", responseText);
 
     const lines = responseText.split("\n").filter((line) => line.trim() !== "");
 
@@ -51,18 +51,19 @@ async function checkWordPressSite(url) {
       try {
         const data = JSON.parse(line);
         if (data.error) {
-          throw new Error(
-            `Server error: ${data.message}\nTrace: ${
-              data.trace || "No trace available"
-            }`
+          console.error(`Error in ${data.error}: ${data.message}`);
+          updateField(
+            "wpIssues",
+            `Error in ${data.error}: ${data.message}`,
+            "text-red-500"
           );
+        } else if (data.final_results) {
+          updateTableContent(data.final_results);
+        } else {
+          updateTableContent(data);
         }
-        updateTableContent(data);
       } catch (jsonError) {
-        console.error("Error parsing JSON:", jsonError);
-        throw new Error(
-          `Failed to parse server response: ${jsonError.message}\nRaw response: ${line}`
-        );
+        console.error("Error parsing JSON:", jsonError, "Raw data:", line);
       }
     }
   } catch (error) {
@@ -130,7 +131,7 @@ function updateTableContent(data) {
       case "directory_indexing":
         updateField(
           "directoryIndexing",
-          value ? "Enabled (Vulnerable)" : "Disabled",
+          value ? "Enabled (Vulnerable)" : "Disabled (Secure)",
           value ? "text-red-500" : "text-green-500"
         );
         break;
