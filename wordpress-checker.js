@@ -145,7 +145,7 @@ function updateTableContent(data) {
       case "user_enumeration":
         updateField(
           "userEnumeration",
-          value ? "Possible" : "Not detected",
+          value ? "Possible (Vulnerable)" : "Not detected (Secure)",
           value ? "text-red-500" : "text-green-500"
         );
         break;
@@ -188,9 +188,15 @@ function updatePlugins(plugins) {
     wpPlugins.innerHTML = plugins
       .map((plugin) => {
         const [name, version] = plugin.split("|");
-        return `<div>${name}: <span class="font-semibold">${
-          version || "Unknown version"
-        }</span></div>`;
+        let versionClass = "text-green-500";
+        if (
+          version === "Unable to determine version" ||
+          version === "Unable to access plugin file" ||
+          version === "Error checking plugin"
+        ) {
+          versionClass = "text-yellow-500";
+        }
+        return `<div>${name}: <span class="font-semibold ${versionClass}">${version}</span></div>`;
       })
       .join("");
     wpPlugins.className = "border border-gray-300 p-2 text-green-500";

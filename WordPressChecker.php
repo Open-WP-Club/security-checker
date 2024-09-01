@@ -207,14 +207,27 @@ class WordPressChecker
         if (!empty($plugin_matches[1])) {
             $plugins = array_values(array_unique($plugin_matches[1]));
             foreach ($plugins as $plugin) {
-                $plugin_file = $this->url . "/wp-content/plugins/$plugin/$plugin.php";
-                $plugin_data = @file_get_contents($plugin_file);
-                if ($plugin_data !== false) {
-                    preg_match('/Version:\s*(.+)$/m', $plugin_data, $version_match);
-                    $version = !empty($version_match[1]) ? trim($version_match[1]) : 'Unknown';
-                    $this->results['plugins'][] = "$plugin|$version";
-                } else {
-                    $this->results['plugins'][] = "$plugin|Unknown";
+                try {
+                    $plugin_file = $this->url . "/wp-content/plugins/$plugin/$plugin.php";
+                    $context = stream_context_create(['http' => ['ignore_errors' => true]]);
+                    $plugin_data = @file_get_contents($plugin_file, false, $context);
+
+                    if ($plugin_data !== false) {
+                        $http_response_header = $http_response_header ?? [];
+                        $status_line = $http_response_header[0] ?? '';
+                        if (strpos($status_line, '200') !== false) {
+                            preg_match('/Version:\s*(.+)$/m', $plugin_data, $version_match);
+                            $version = !empty($version_match[1]) ? trim($version_match[1]) : 'Unknown';
+                            $this->results['plugins'][] = "$plugin|$version";
+                        } else {
+                            $this->results['plugins'][] = "$plugin|Unable to determine version";
+                        }
+                    } else {
+                        $this->results['plugins'][] = "$plugin|Unable to access plugin file";
+                    }
+                } catch (Exception $e) {
+                    $this->results['plugins'][] = "$plugin|Error checking plugin";
+                    $this->results['issues'][] = "Error checking plugin $plugin: " . $e->getMessage();
                 }
             }
         }
@@ -265,11 +278,31 @@ class WordPressChecker
 
     private function checkUserEnumeration()
     {
-        $user_check = @file_get_contents($this->url . "/?author=1");
-        if ($user_check !== false && strpos($user_check, 'author/') !== false) {
-            $this->results['user_enumeration'] = true;
-            $this->results['issues'][] = "User enumeration is possible";
+        $context = stream_context_create(['http' => ['ignore_errors' => true]]);
+        $user_check = @file_get_contents($this->url . "/?author=1", false, $context);
+
+        if ($user_check === false) {
+            $this->results['user_enumeration'] = false;
+            $this->results['issues'][] = "User enumeration check failed due to network error";
+        } else {
+            $http_response_header = $http_response_header ?? [];
+            $status_line = $http_response_header[0] ?? '';
+            preg_match('{HTTP\/\S*\s(\d{3})}', $status_line, $match);
+            $status = $match[1] ?? '';
+
+            if ($status == '200' && strpos($user_check, 'author/') !== false) {
+                $this->results['user_enumeration'] = true;
+                $this->results['issues'][] = "User enumeration is possible";
+            } else {
+                $this->results['user_enumeration'] = false;
+                if ($status == '404') {
+                    $this->results['issues'][] = "User enumeration appears to be disabled (good security practice)";
+                } else {
+                    $this->results['issues'][] = "User enumeration check returned unexpected status: $status";
+                }
+            }
         }
+
         $this->sendUpdate(['user_enumeration' => $this->results['user_enumeration']]);
     }
 

@@ -5,7 +5,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // Log the request method
-file_put_contents('request_log.txt', date('Y-m-d H:i:s') . ' - Request Method: ' . $_SERVER['REQUEST_METHOD'] . "\n", FILE_APPEND);
+// file_put_contents('request_log.txt', date('Y-m-d H:i:s') . ' - Request Method: ' . $_SERVER['REQUEST_METHOD'] . "\n", FILE_APPEND);
 
 // Custom error handler
 function jsonErrorHandler($errno, $errstr, $errfile, $errline)
